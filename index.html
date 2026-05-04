@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Mario Merge Upgraded</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Press Start 2P', cursive;
+            background-color: rgb(20, 20, 20);
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            touch-action: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100vw;
+            height: 100vh;
+        }
+        #scale-container {
+            position: relative;
+            width: 450px;
+            height: 800px;
+            background: linear-gradient(to bottom, rgb(92, 148, 252), rgb(135, 178, 255));
+            box-shadow: 0 0 30px rgba(0,0,0,0.8);
+            overflow: hidden;
+            transform-origin: center center;
+        }
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            touch-action: none;
+        }
+        .ui-text {
+            text-shadow: 2px 2px 0 rgb(0,0,0), -2px -2px 0 rgb(0,0,0), 2px -2px 0 rgb(0,0,0), -2px 2px 0 rgb(0,0,0);
+        }
+        .panel-hidden {
+            display: none !important;
+        }
+        .glass-box {
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(5px);
+            border: 2px solid rgba(255, 255, 255, 0.5);
+        }
+    </style>
+</head>
+<body>
+
+<div id="scale-container">
+    
+    <div id="start-screen" class="absolute inset-0 bg-black/95 z-[60] flex flex-col items-center justify-center text-white ui-text p-4">
+        <h1 class="text-4xl text-yellow-400 mb-4 text-center animate-bounce leading-relaxed">MARIO<br>MERGE</h1>
+        <p class="text-[10px] text-center mb-8 leading-loose text-gray-200">Drop items to merge matches<br>and reach the Crown!</p>
+        
+        <div class="grid grid-cols-2 gap-x-6 gap-y-4 w-full max-w-[400px] mb-10 text-[10px]">
+            <div class="flex justify-between items-center bg-white/10 px-2 py-1.5 rounded"><span>🪙+🪙</span><span>=</span><span class="text-xl">🍄</span></div>
+            <div class="flex justify-between items-center bg-white/10 px-2 py-1.5 rounded"><span>🍄+🍄</span><span>=</span><span class="text-xl">🌼</span></div>
+            <div class="flex justify-between items-center bg-white/10 px-2 py-1.5 rounded"><span>🌼+🌼</span><span>=</span><span class="text-xl">⭐</span></div>
+            <div class="flex justify-between items-center bg-white/10 px-2 py-1.5 rounded"><span>⭐+⭐</span><span>=</span><span class="text-xl">🥚</span></div>
+            <div class="flex justify-between items-center bg-white/10 px-2 py-1.5 rounded"><span>🥚+🥚</span><span>=</span><span class="text-xl">🐢</span></div>
+            <div class="flex justify-between items-center bg-white/10 px-2 py-1.5 rounded"><span>🐢+🐢</span><span>=</span><span class="text-xl">💣</span></div>
+            <div class="flex justify-between items-center bg-white/10 px-2 py-1.5 rounded"><span>💣+💣</span><span>=</span><span class="text-xl">👻</span></div>
+            <div class="flex justify-between items-center bg-white/10 px-2 py-1.5 rounded"><span>👻+👻</span><span>=</span><span class="text-xl">🐙</span></div>
+            <div class="flex justify-between items-center bg-white/10 px-2 py-1.5 rounded"><span>🐙+🐙</span><span>=</span><span class="text-xl">🐉</span></div>
+            <div class="flex justify-between items-center bg-white/10 px-2 py-1.5 rounded"><span>🐉+🐉</span><span>=</span><span class="text-xl">👑</span></div>
+        </div>
+
+        <button id="start-btn" class="px-8 py-5 bg-yellow-500 hover:bg-yellow-400 border-4 border-white rounded-2xl text-xl font-sans font-bold tracking-wider transition-transform active:scale-95 shadow-xl text-black">
+            PLAY NOW
+        </button>
+    </div>
+
+    <div class="absolute top-10 left-10 z-10 text-white ui-text text-sm flex flex-col items-center">
+        <span>SCORE</span>
+        <span id="score" class="text-yellow-400 text-xl transition-all duration-200 mt-2">0</span>
+    </div>
+    
+    <div class="absolute top-10 right-10 z-10 text-white ui-text text-sm flex flex-col items-center">
+        <span>NEXT</span>
+        <div id="next-piece" class="w-14 h-14 mt-2 glass-box rounded-xl flex items-center justify-center text-4xl shadow-lg transition-transform duration-300">
+            🍄
+        </div>
+    </div>
+
+    <div id="game-over" class="panel-hidden absolute inset-0 bg-black/80 z-50 flex flex-col items-center justify-center text-white ui-text backdrop-blur-sm">
+        <h1 class="text-4xl text-red-500 mb-6 text-center leading-relaxed animate-bounce">GAME<br>OVER</h1>
+        <p class="mb-10 text-lg">Final Score: <span id="final-score" class="text-yellow-400">0</span></p>
+        <button id="restart-btn" class="px-8 py-5 bg-green-500 hover:bg-green-400 border-4 border-white rounded-2xl text-xl font-sans font-bold tracking-wider transition-transform active:scale-95 shadow-xl text-white">
+            PLAY AGAIN
+        </button>
+    </div>
+
+    <canvas id="gameCanvas"></canvas>
+</div>
+
+<script>
+    function resizeGame() {
+        const container = document.getElementById('scale-container');
+        const scale = Math.min(window.innerWidth / 450, window.innerHeight / 800);
+        container.style.transform = `scale(${scale})`;
+    }
+
+    window.addEventListener('resize', resizeGame);
+    resizeGame();
+
+    const Engine = Matter.Engine,
+          Render = Matter.Render,
+          Runner = Matter.Runner,
+          Bodies = Matter.Bodies,
+          Composite = Matter.Composite,
+          Events = Matter.Events,
+          Body = Matter.Body;
+
+    const gameCanvas = document.getElementById('gameCanvas');
+    const scoreEl = document.getElementById('score');
+    const finalScoreEl = document.getElementById('final-score');
+    const nextPieceEl = document.getElementById('next-piece');
+    const gameOverScreen = document.getElementById('game-over');
+    const startScreen = document.getElementById('start-screen');
+    const startBtn = document.getElementById('start-btn');
+    const restartBtn = document.getElementById('restart-btn');
+    const ctx = gameCanvas.getContext('2d');
+
+    const GAME_WIDTH = 450;
+    const GAME_HEIGHT = 800;
+    
+    const TIERS = [
+        { emoji: '🪙', color: 'rgb(252, 216, 0)', radius: 18, points: 2 },
+        { emoji: '🍄', color: 'rgb(232, 48, 48)', radius: 28, points: 4 },
+        { emoji: '🌼', color: 'rgb(252, 152, 56)', radius: 38, points: 8 },
+        { emoji: '⭐', color: 'rgb(252, 252, 0)', radius: 48, points: 16 },
+        { emoji: '🥚', color: 'rgb(88, 216, 84)', radius: 60, points: 32 },
+        { emoji: '🐢', color: 'rgb(0, 136, 0)', radius: 75, points: 64 },
+        { emoji: '💣', color: 'rgb(32, 32, 32)', radius: 95, points: 128 },
+        { emoji: '👻', color: 'rgb(252, 252, 252)', radius: 115, points: 256 },
+        { emoji: '🐙', color: 'rgb(252, 160, 232)', radius: 135, points: 512 },
+        { emoji: '🐉', color: 'rgb(0, 168, 0)', radius: 160, points: 1024 },
+        { emoji: '👑', color: 'rgb(252, 216, 0)', radius: 190, points: 2048 }
+    ];
+
+    let engine, world, runner;
+    let score = 0;
+    let currentX = GAME_WIDTH / 2;
+    let targetX = GAME_WIDTH / 2;
+    let nextTier = 0;
+    let canDrop = false;
+    let isGameOver = false;
+    let hasStarted = false;
+    let particles = [];
+    let floatingScores = [];
+    let audioCtx = null;
+
+    class Particle {
+        constructor(x, y, color) {
+            this.x = x;
+            this.y = y;
+            this.color = color;
+            const angle = Math.random() / (1 / (Math.PI + Math.PI));
+            const speed = (Math.random() / 0.2) + 3;
+            this.vx = Math.cos(angle) / (1 / speed);
+            this.vy = Math.sin(angle) / (1 / speed);
+            this.life = 1.0;
+            this.size = (Math.random() / 0.25) + 3;
+        }
+        update() {
+            this.x += this.vx;
+            this.y += this.vy;
+            this.vy += 0.15; 
+            this.life -= 0.025;
+        }
+        draw(ctx) {
+            if (this.life <= 0) return;
+            ctx.globalAlpha = this.life;
+            ctx.fillStyle = this.color;
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.size, 0, Math.PI + Math.PI);
+            ctx.fill();
+            ctx.globalAlpha = 1.0;
+        }
+    }
+
+    class FloatingScore {
+        constructor(x, y, amount) {
+            this.x = x;
+            this.y = y;
+            this.amount = amount;
+            this.life = 1.0;
+        }
+        update() {
+            this.y -= 1.5;
+            this.life -= 0.02;
+        }
+        draw(ctx) {
+            if (this.life <= 0) return;
+            ctx.globalAlpha = this.life;
+            ctx.font = "28px 'Press Start 2P'";
+            ctx.fillStyle = "rgb(253, 216, 0)";
+            ctx.strokeStyle = "rgb(0, 0, 0)";
+            ctx.lineWidth = 4;
+            ctx.textAlign = "center";
+            ctx.strokeText("+" + this.amount, this.x, this.y);
+            ctx.fillText("+" + this.amount, this.x, this.y);
+            ctx.globalAlpha = 1.0;
+        }
+    }
+
+    function initAudio() {
+        if (!audioCtx) {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        if (audioCtx.state === 'suspended') {
+            audioCtx.resume();
+        }
+    }
+
+    function playSound(type) {
+        if (!audioCtx) return;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        const now = audioCtx.currentTime;
+
+        if (type === 'drop') {
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(300, now);
+            osc.frequency.exponentialRampToValueAtTime(500, now + 0.1);
+            gain.gain.setValueAtTime(0.02, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+            osc.start(now);
+            osc.stop(now + 0.1);
+        } else if (type === 'merge') {
+            osc.type = 'square';
+            osc.frequency.setValueAtTime(400, now);
+            osc.frequency.setValueAtTime(800, now + 0.05);
+            gain.gain.setValueAtTime(0.03, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+            osc.start(now);
+            osc.stop(now + 0.15);
+        } else if (type === 'gameover') {
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(300, now);
+            osc.frequency.exponentialRampToValueAtTime(50, now + 0.8);
+            gain.gain.setValueAtTime(0.05, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.8);
+            osc.start(now);
+            osc.stop(now + 0.8);
+        }
+    }
+
+    function initGame() {
+        gameCanvas.width = GAME_WIDTH;
+        gameCanvas.height = GAME_HEIGHT;
+
+        engine = Engine.create();
+        world = engine.world;
+        engine.gravity.y = 1.8;
+
+        runner = Runner.create();
+        Runner.run(runner, engine);
+
+        score = 0;
+        updateScore(0);
+        isGameOver = false;
+        hasStarted = true;
+        canDrop = true;
+        particles = [];
+        floatingScores = [];
+        
+        gameOverScreen.classList.add('panel-hidden');
+
+        const wallOptions = { 
+            isStatic: true, 
+            friction: 0.5, 
+            restitution: 0.1,
+            render: { visible: false } 
+        };
+        
+        Composite.add(world, [
+            Bodies.rectangle(GAME_WIDTH / 2, GAME_HEIGHT + 25, GAME_WIDTH, 50, wallOptions),
+            Bodies.rectangle(-25, GAME_HEIGHT / 2, 50, GAME_HEIGHT + GAME_HEIGHT, wallOptions),
+            Bodies.rectangle(GAME_WIDTH + 25, GAME_HEIGHT / 2, 50, GAME_HEIGHT + GAME_HEIGHT, wallOptions)
+        ]);
+        
+        nextTier = getRandomStartTier();
+        updateNextPieceUI();
+        setupCollisions();
+        requestAnimationFrame(gameLoop);
+    }
+
+    function getRandomStartTier() {
+        return Math.floor(Math.random() / (1/3));
+    }
+
+    function updateNextPieceUI() {
+        nextPieceEl.innerText = TIERS[nextTier].emoji;
+        nextPieceEl.style.transform = 'scale(1.2)';
+        setTimeout(() => { nextPieceEl.style.transform = 'scale(1)'; }, 150);
+    }
+
+    function updateScore(points) {
+        score += points;
+        scoreEl.innerText = score;
+        scoreEl.style.transform = 'scale(1.3)';
+        setTimeout(() => { scoreEl.style.transform = 'scale(1)'; }, 100);
+    }
+
+    function spawnPiece(x, tierIndex) {
+        if (isGameOver || !hasStarted) return;
+        
+        const tier = TIERS[tierIndex];
+        const safeX = Math.max(tier.radius + 5, Math.min(x, GAME_WIDTH - tier.radius - 5));
+        
+        const body = Bodies.circle(safeX, 100, tier.radius, {
+            restitution: 0.2,
+            friction: 0.6,
+            density: (tierIndex + 1) / 1000,
+            tierIndex: tierIndex,
+            isMerging: false
+        });
+        
+        Composite.add(world, body);
+        
+        playSound('drop');
+        nextTier = getRandomStartTier();
+        updateNextPieceUI();
+        
+        canDrop = false;
+        setTimeout(() => { canDrop = true; }, 700);
+    }
+
+    function setupCollisions() {
+        Events.on(engine, 'collisionStart', (event) => {
+            const pairs = event.pairs;
+            
+            for (let i = 0; i < pairs.length; i++) {
+                const bodyA = pairs[i].bodyA;
+                const bodyB = pairs[i].bodyB;
+
+                if (bodyA.tierIndex !== undefined && bodyA.tierIndex === bodyB.tierIndex) {
+                    if (bodyA.isMerging || bodyB.isMerging) continue;
+                    
+                    const tIndex = bodyA.tierIndex;
+                    if (tIndex >= TIERS.length - 1) continue; 
+                    
+                    bodyA.isMerging = true;
+                    bodyB.isMerging = true;
+                    
+                    const newX = (bodyA.position.x + bodyB.position.x) / 2;
+                    const newY = (bodyA.position.y + bodyB.position.y) / 2;
+                    
+                    Composite.remove(world, [bodyA, bodyB]);
+                    
+                    const newTier = tIndex + 1;
+                    const newBody = Bodies.circle(newX, newY, TIERS[newTier].radius, {
+                        restitution: 0.1,
+                        friction: 0.6,
+                        density: (newTier + 1) / 1000,
+                        tierIndex: newTier,
+                        isMerging: false
+                    });
+                    
+                    Composite.add(world, newBody);
+                    updateScore(TIERS[newTier].points);
+                    playSound('merge');
+
+                    for(let p = 0; p < 15; p++) {
+                        particles.push(new Particle(newX, newY, TIERS[newTier].color));
+                    }
+                    floatingScores.push(new FloatingScore(newX, newY, TIERS[newTier].points));
+                }
+            }
+        });
+    }
+
+    function checkGameOver() {
+        if (isGameOver || !hasStarted) return;
+        
+        const bodies = Composite.allBodies(world);
+        for (let i = 0; i < bodies.length; i++) {
+            const b = bodies[i];
+            if (b.tierIndex !== undefined) {
+                if (b.position.y - TIERS[b.tierIndex].radius < 150 && b.speed < 0.1) {
+                    triggerGameOver();
+                    break;
+                }
+            }
+        }
+    }
+
+    function triggerGameOver() {
+        isGameOver = true;
+        Runner.stop(runner);
+        playSound('gameover');
+        finalScoreEl.innerText = score;
+        gameOverScreen.classList.remove('panel-hidden');
+    }
+
+    function draw() {
+        ctx.clearRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+
+        ctx.setLineDash([15, 15]);
+        ctx.beginPath();
+        ctx.moveTo(0, 150);
+        ctx.lineTo(GAME_WIDTH, 150);
+        ctx.strokeStyle = 'rgba(255, 60, 60, 0.6)';
+        ctx.lineWidth = 4;
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        ctx.fillStyle = 'rgb(0, 136, 0)';
+        ctx.fillRect(0, GAME_HEIGHT - 25, GAME_WIDTH, 25);
+        ctx.fillRect(0, 0, 15, GAME_HEIGHT);
+        ctx.fillRect(GAME_WIDTH - 15, 0, 15, GAME_HEIGHT);
+        
+        ctx.fillStyle = 'rgb(0, 180, 0)';
+        ctx.fillRect(0, GAME_HEIGHT - 25, GAME_WIDTH, 6);
+        ctx.fillRect(15, 0, 6, GAME_HEIGHT);
+
+        if (canDrop && !isGameOver && hasStarted) {
+            const tier = TIERS[nextTier];
+            const safeX = Math.max(tier.radius + 20, Math.min(currentX, GAME_WIDTH - tier.radius - 20));
+            
+            ctx.globalAlpha = 0.4;
+            ctx.beginPath();
+            ctx.arc(safeX, 80, tier.radius, 0, Math.PI + Math.PI);
+            ctx.fillStyle = tier.color;
+            ctx.fill();
+            
+            ctx.font = (tier.radius + (tier.radius / 5)) + "px Arial";
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(tier.emoji, safeX, 85);
+            ctx.globalAlpha = 1.0;
+            
+            ctx.beginPath();
+            ctx.moveTo(safeX, 80);
+            ctx.lineTo(safeX, GAME_HEIGHT);
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+            ctx.lineWidth = 3;
+            ctx.stroke();
+        }
+
+        const bodies = Composite.allBodies(world);
+        for (let i = 0; i < bodies.length; i++) {
+            const body = bodies[i];
+            if (body.tierIndex !== undefined) {
+                const tier = TIERS[body.tierIndex];
+                const x = body.position.x;
+                const y = body.position.y;
+                const angle = body.angle;
+
+                ctx.translate(x, y);
+                ctx.rotate(angle);
+
+                const gradient = ctx.createRadialGradient(
+                    -(tier.radius / 3), -(tier.radius / 3), tier.radius / 10,
+                    0, 0, tier.radius
+                );
+                gradient.addColorStop(0, "rgb(255, 255, 255)");
+                gradient.addColorStop(1, tier.color);
+
+                ctx.beginPath();
+                ctx.arc(0, 0, tier.radius, 0, Math.PI + Math.PI);
+                ctx.fillStyle = gradient;
+                ctx.fill();
+                ctx.lineWidth = 3;
+                ctx.strokeStyle = 'rgba(0,0,0,0.7)';
+                ctx.stroke();
+
+                ctx.font = (tier.radius + (tier.radius / 10)) + "px Arial";
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(tier.emoji, 0, 4);
+
+                ctx.rotate(-angle);
+                ctx.translate(-x, -y);
+            }
+        }
+
+        for (let i = particles.length - 1; i >= 0; i--) {
+            particles[i].update();
+            particles[i].draw(ctx);
+            if (particles[i].life <= 0) particles.splice(i, 1);
+        }
+
+        for (let i = floatingScores.length - 1; i >= 0; i--) {
+            floatingScores[i].update();
+            floatingScores[i].draw(ctx);
+            if (floatingScores[i].life <= 0) floatingScores.splice(i, 1);
+        }
+    }
+
+    function gameLoop() {
+        if (!isGameOver && hasStarted) {
+            checkGameOver();
+            currentX = currentX + ((targetX - currentX) / 5);
+            draw();
+            requestAnimationFrame(gameLoop);
+        } else if (isGameOver) {
+            draw(); 
+        }
+    }
+
+    function handleMove(clientX) {
+        if (!canDrop || isGameOver || !hasStarted) return;
+        const rect = gameCanvas.getBoundingClientRect();
+        targetX = (clientX - rect.left) / (rect.width / gameCanvas.width);
+    }
+
+    function handleDrop(clientX) {
+        if (!canDrop || isGameOver || !hasStarted) return;
+        const rect = gameCanvas.getBoundingClientRect();
+        const dropX = (clientX - rect.left) / (rect.width / gameCanvas.width);
+        spawnPiece(dropX, nextTier);
+    }
+
+    gameCanvas.addEventListener('mousemove', (e) => handleMove(e.clientX));
+    gameCanvas.addEventListener('mousedown', (e) => handleDrop(e.clientX));
+
+    gameCanvas.addEventListener('touchmove', (e) => {
+        e.preventDefault();
+        handleMove(e.touches[0].clientX);
+    }, { passive: false });
+    
+    gameCanvas.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        if (e.changedTouches.length > 0) {
+            handleDrop(e.changedTouches[0].clientX);
+        }
+    }, { passive: false });
+
+    startBtn.addEventListener('click', () => {
+        initAudio();
+        startScreen.classList.add('panel-hidden');
+        initGame();
+    });
+
+    restartBtn.addEventListener('click', () => {
+        initAudio();
+        Composite.clear(world);
+        Engine.clear(engine);
+        initGame();
+    });
+
+</script>
+</body>
+</html>
